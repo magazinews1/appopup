@@ -29,6 +29,8 @@ repositories {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
 
+    compile "io.github.daviddenton:konfigur8:1.7.0"
+
     compile "org.http4k:http4k-core:$http4k_version"
     compile "org.http4k:http4k-server-jetty:$http4k_version"
     compile "org.http4k:http4k-template-handlebars:$http4k_version"

@@ -1,1 +1,1 @@
-web: build/install/appopup/bin/appopup $PORT production
+web: build/install/appopup/bin/appopup
