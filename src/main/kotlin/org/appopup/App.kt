@@ -86,6 +86,8 @@ object AppopupConfiguration {
     val GITHUB_CLIENT_ID = Property.string("GITHUB_CLIENT_ID")
     val GITHUB_CLIENT_SECRET = Property.string("GITHUB_CLIENT_SECRET")
     val defaults = ConfigurationTemplate()
+        .withProp(GITHUB_CLIENT_ID, "unset")
+        .withProp(GITHUB_CLIENT_SECRET, "unset")
         .withProp(PORT, 5000)
 }
 
