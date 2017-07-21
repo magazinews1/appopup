@@ -1,7 +1,5 @@
 <html>
 <body>
-Hi there
-
-<a href="{{ loginUrl }}">login</a>
+Hi there{{#if user}}, {{user}}! (<a href="/logout">logout</a>){{else}}. Please <a href="{{ loginUrl }}">login</a>.{{/if}}
 </body>
 </html>
