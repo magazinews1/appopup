@@ -23,12 +23,13 @@ import org.http4k.server.asServer
 import org.http4k.template.HandlebarsTemplates
 import org.http4k.template.ViewModel
 
-data class Home(val ignore: String = "ignored") : ViewModel
+data class Home(val loginUrl: String = "ignored") : ViewModel
 
 object Appoup {
     operator fun invoke(github: HttpHandler, config: Configuration): HttpHandler {
 
-        val githubClient = GithubClient(github, GithubAppConfig(config[AppopupConfiguration.GITHUB_CLIENT_ID], config[AppopupConfiguration.GITHUB_CLIENT_SECRET]))
+        val githubAppConfig = GithubAppConfig(config[AppopupConfiguration.GITHUB_CLIENT_ID], config[AppopupConfiguration.GITHUB_CLIENT_SECRET])
+        val githubClient = GithubClient(github, githubAppConfig)
 
         val renderer = HandlebarsTemplates().HotReload("src/main/resources")
 
@@ -37,12 +38,14 @@ object Appoup {
                 val token = githubClient.retrieveAccessToken(GithubOauthCode(request.query("code")!!))
                 Response(OK).body("Welcome!")
             },
-            "/" to GET bind { _: Request -> Response(OK).body(renderer(Home())) }
+            "/" to GET bind { _: Request -> Response(OK).body(renderer(Home(githubAppConfig.loginUrl))) }
         )
     }
 }
 
-data class GithubAppConfig(val clientId: String, val clientSecret: String)
+data class GithubAppConfig(val clientId: String, val clientSecret: String){
+    val loginUrl = "https://github.com/login/oauth/authorize?client_id=$clientId&scope=repo"
+}
 data class GithubOauthCode(val value: String)
 data class GithubAccessToken(val value: String)
 
