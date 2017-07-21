@@ -1,7 +1,7 @@
 # http4k + Heroku + Travis 
 
-[![build status](https://travis-ci.org/magazinews1/appopup.svg?branch=master)](https://travis-ci.org/magazinews1/appopup
-?branch=master)
+[![build status](https://travis-ci.org/magazinews1/appopupbranch=master)](https://travis-ci.org/magazinews1/appopup
+.svg?branch=master)
 
 This application gets deployed to Heroku on every push to GitHub
 
