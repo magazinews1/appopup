@@ -8,10 +8,8 @@ import org.http4k.core.Request
 import org.http4k.core.body.form
 import org.http4k.format.Jackson.auto
 
-data class GithubAppConfig(val clientId: String, val clientSecret: String) {
-    val loginUrl = "https://github.com/login/oauth/authorize?client_id=$clientId&scope=repo"
-}
-
+data class GithubAppConfig(val clientId: String, val clientSecret: String)
+data class GithubOauthLink(val value:String)
 data class GithubOauthCode(val value: String)
 data class GithubAccessToken(val value: String)
 data class GithubUser(val name: String)
@@ -27,6 +25,8 @@ class GithubClient(val client: HttpHandler, val config: GithubAppConfig) {
 
     private val tokenResponseLens = Body.auto<TokenResponse>().toLens()
     private val userResponseLens = Body.auto<UserResponse>().toLens()
+
+    fun createOauthLink(): GithubOauthLink = GithubOauthLink("https://github.com/login/oauth/authorize?client_id=${config.clientId}&scope=repo&")
 
     fun retrieveAccessToken(code: GithubOauthCode): GithubAccessToken {
         val response = client(Request(Method.POST, "https://github.com/login/oauth/access_token")

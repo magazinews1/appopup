@@ -3,6 +3,8 @@ package org.appopup
 import io.github.konfigur8.Configuration
 import io.github.konfigur8.ConfigurationTemplate
 import io.github.konfigur8.Property
+import org.appopup.AppopupConfiguration.GITHUB_CLIENT_ID
+import org.appopup.AppopupConfiguration.GITHUB_CLIENT_SECRET
 import org.http4k.client.OkHttp
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
@@ -19,16 +21,14 @@ import org.http4k.server.asServer
 import org.http4k.template.HandlebarsTemplates
 import org.http4k.template.ViewModel
 
-data class Home(val user: String? = null, val loginUrl: String = "ignored") : ViewModel
+data class Home(val user: String? = null, val loginUrl: GithubOauthLink) : ViewModel
 
 object Appopup {
 
     operator fun invoke(github: HttpHandler, config: Configuration): HttpHandler {
         val sessionStorage = Sessions()
-
         val renderer = HandlebarsTemplates().HotReload("src/main/resources")
-        val githubAppConfig = GithubAppConfig(config[AppopupConfiguration.GITHUB_CLIENT_ID], config[AppopupConfiguration.GITHUB_CLIENT_SECRET])
-        val githubClient = GithubClient(github, githubAppConfig)
+        val githubClient = GithubClient(github, GithubAppConfig(config[GITHUB_CLIENT_ID], config[GITHUB_CLIENT_SECRET]))
 
         return Session(sessionStorage)
             .then(routes(
@@ -44,7 +44,7 @@ object Appopup {
                 "/" to GET bind { request: Request ->
                     val token: GithubAccessToken? = request.retrieveKeyFromSession(sessionStorage)
                     val user = token?.let { githubClient.userInfo(it) }
-                    Response(OK).body(renderer(Home(user?.name, githubAppConfig.loginUrl)))
+                    Response(OK).body(renderer(Home(user?.name, githubClient.createOauthLink())))
                 })
             )
     }
