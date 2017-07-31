@@ -38,6 +38,7 @@ dependencies {
     compile "org.http4k:http4k-client-okhttp:$http4k_version"
 
     testCompile group: 'junit', name: 'junit', version: '4.11'
+    testCompile "com.natpryce:hamkrest:1.4.1.0"
 }
 
 mainClassName = 'org.appopup.AppKt'

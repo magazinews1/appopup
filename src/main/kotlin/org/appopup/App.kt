@@ -21,7 +21,9 @@ import org.http4k.server.asServer
 import org.http4k.template.HandlebarsTemplates
 import org.http4k.template.ViewModel
 
-data class Home(val user: String? = null, val loginUrl: GithubOauthLink) : ViewModel
+data class Home(val user: String? = null, val loginUrl: GithubOauthLink?) : ViewModel
+
+data class AppopupSession(val accessToken: GithubAccessToken? = null, val stateToken: GithubAuthenticationStateToken? = null)
 
 object Appopup {
 
@@ -30,21 +32,32 @@ object Appopup {
         val renderer = HandlebarsTemplates().HotReload("src/main/resources")
         val githubClient = GithubClient(github, GithubAppConfig(config[GITHUB_CLIENT_ID], config[GITHUB_CLIENT_SECRET]))
 
-        return Session(sessionStorage)
+        return SessionSupport(sessionStorage)
             .then(routes(
                 "/github-auth-callback" to GET bind { request: Request ->
-                    val token = githubClient.retrieveAccessToken(GithubOauthCode(request.query("code")!!))
-                    request.storeInSession(sessionStorage, token)
+                    val session = request.session(sessionStorage)
+                    val token = githubClient.completeAuthentication(GithubOauthCode(request.query("code").orEmpty()),
+                        GithubAuthenticationStateToken(request.query("state").orEmpty()),
+                        session.retrieve<AppopupSession?>()?.stateToken)
+                    session.store(AppopupSession(accessToken = token))
                     Response(FOUND).header("Location", "/")
                 },
                 "/logout" to GET bind { request: Request ->
-                    request.destroySession(sessionStorage)
+                    request.session(sessionStorage).destroy()
                     Response(FOUND).header("Location", "/")
                 },
                 "/" to GET bind { request: Request ->
-                    val token: GithubAccessToken? = request.retrieveKeyFromSession(sessionStorage)
-                    val user = token?.let { githubClient.userInfo(it) }
-                    Response(OK).body(renderer(Home(user?.name, githubClient.createOauthLink())))
+                    val session = request.session(sessionStorage)
+                    val token: GithubAccessToken? = session.retrieve<AppopupSession?>()?.accessToken
+
+                    val view = if (token == null) {
+                        val newLink = githubClient.createOauthLink()
+                        session.store(AppopupSession(stateToken = newLink.stateToken))
+                        Home(null, newLink)
+
+                    } else Home(githubClient.userInfo(token)?.name, null)
+
+                    Response(OK).body(renderer(view))
                 })
             )
     }

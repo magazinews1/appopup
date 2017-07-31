@@ -4,6 +4,7 @@ import org.http4k.core.Filter
 import org.http4k.core.Request
 import org.http4k.core.cookie.Cookie
 import org.http4k.core.cookie.cookie
+import org.http4k.core.cookie.invalidateCookie
 import java.math.BigInteger
 import java.security.SecureRandom
 
@@ -27,6 +28,8 @@ class Sessions {
         storage.remove(sessionKey)
     }
 
+    fun present(sessionKey: SessionKey): Boolean = storage.containsKey(sessionKey)
+
     inline fun <reified T> retrieve(sessionKey: SessionKey): T? = storage[sessionKey].takeIf { it is T } as T?
 }
 
@@ -37,7 +40,7 @@ object SessionGenerator {
     fun create(): SessionKey = SessionKey(BigInteger(128, random).toString(32))
 }
 
-object Session {
+object SessionSupport {
     val cookieName = "h4k"
 
     operator fun invoke(sessions: Sessions): Filter = Filter {
@@ -49,14 +52,26 @@ object Session {
                 val response = next(request.cookie(cookieName, newKey.value))
                 response.cookie(Cookie(cookieName, newKey.value))
             } else {
-                next(request)
+                val response = next(request)
+                if (!sessions.present(key)) {
+                    response.invalidateCookie("h4k")
+                } else {
+                    response
+                }
             }
 
         }
     }
 }
 
-fun Request.storeInSession(sessionStorage: Sessions, value: Any) = sessionStorage.store(sessionKey(), value)
-inline fun <reified T> Request.retrieveKeyFromSession(sessionStorage: Sessions): T? = sessionStorage.retrieve(sessionKey())
-fun Request.destroySession(sessionStorage: Sessions) = sessionStorage.destroy(sessionKey())
-fun Request.sessionKey(): SessionKey = cookie(Session.cookieName)?.let { SessionKey(it.value) } ?: throw IllegalStateException("Session is not present")
+class Session(val sessions: Sessions, val sessionKey: SessionKey) {
+    fun store(value: Any) = sessions.store(sessionKey, value)
+    inline fun <reified T> retrieve(): T? = sessions.retrieve(sessionKey)
+    fun destroy() = sessions.destroy(sessionKey)
+}
+
+fun Request.session(sessionStorage: Sessions): Session {
+    val sessionKey = cookie(SessionSupport.cookieName)?.let { SessionKey(it.value) }
+        ?: throw IllegalStateException("Session is not present")
+    return Session(sessionStorage, sessionKey)
+}
